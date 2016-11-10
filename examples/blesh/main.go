@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"flag"
 	"os"
 	"os/signal"
 	"strings"
@@ -21,6 +22,7 @@ import (
 
 var curr struct {
 	device  ble.Device
+	devId   int
 	client  ble.Client
 	clients map[string]ble.Client
 	uuid    ble.UUID
@@ -36,14 +38,24 @@ var (
 )
 
 func main() {
+	flag.IntVar(&curr.devId, "d", -1, "DeviceId")
+	flag.Parse()
+	//fmt.Printf("os.Args = %s\n", os.Args)
+	//fmt.Printf("flag.Args = %s\n", flag.Args())
+	//fmt.Printf("curr.devId = %d\n", curr.devId)
+	
 	curr.clients = make(map[string]ble.Client)
-
+	
 	app := cli.NewApp()
 
 	app.Name = "blesh"
 	app.Usage = "A CLI tool for ble"
-	app.Version = "0.0.1"
+	app.Version = "0.0.2"
 	app.Action = cli.ShowAppHelp
+
+	//app.Flags = []cli.Flag{
+	//	cli.IntFlag{Name: "dev, d", Value: -1, Usage: "Device Id (example: 0 for hci0)"},
+	//}
 
 	app.Commands = []cli.Command{
 		{
@@ -148,16 +160,23 @@ func main() {
 		},
 	}
 
+	// Remove global args
+	args := []string{os.Args[0]}
+	args = append(args, flag.Args()...)
+	os.Args = args
+
 	// app.Before = setup
-	app.Run(os.Args)
+	app.Run(args)
 }
 
 func setup(c *cli.Context) error {
 	if curr.device != nil {
 		return nil
 	}
-	fmt.Printf("Initializing device ...\n")
-	d, err := dev.NewDevice("default")
+	//id := c.GlobalInt("dev")
+	id := curr.devId
+	fmt.Printf("Initializing device hci%d ...\n", id)
+	d, err := dev.NewDevice(id)
 	if err != nil {
 		return errors.Wrap(err, "can't new device")
 	}
